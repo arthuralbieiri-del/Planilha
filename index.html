@@ -57,7 +57,14 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .page-sub{color:var(--text2);font-size:14px;margin-top:4px;}
 
 /* MONTH GRID 2026 */
-.month-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:16px;}
+.month-selector{margin-top:16px;}
+.ano-btn-wrap{margin-bottom:10px;}
+.ano-btn{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text3);padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;letter-spacing:1.5px;cursor:pointer;transition:all 0.18s;font-family:'DM Sans',sans-serif;text-align:left;display:flex;align-items:center;justify-content:space-between;}
+.ano-btn:hover{background:var(--bg4);color:var(--text2);}
+.ano-btn.active{background:#1a2840;border-color:#2563a8;color:var(--blue);}
+.ano-btn .ano-label{font-size:18px;font-weight:700;letter-spacing:0.5px;}
+.ano-btn .ano-sub{font-size:11px;opacity:0.7;font-weight:400;}
+.month-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;}
 .month-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:7px 10px;border-radius:8px;font-size:13px;cursor:pointer;transition:all 0.15s;font-family:'DM Sans',sans-serif;text-align:center;}
 .month-btn:hover{background:var(--bg4);color:var(--text);}
 .month-btn.active{background:var(--green2);color:var(--green);border-color:var(--green2);}
@@ -66,7 +73,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-bottom:32px;}
 .card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:26px 28px;}
 .card-label{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;}
-.card-value{font-size:30px;font-weight:500;letter-spacing:-0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.card-value{font-size:clamp(18px,2.2vw,28px);font-weight:500;letter-spacing:-0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .month-btn.ano{background:var(--bg4);border-color:var(--border2);color:var(--text2);font-weight:600;letter-spacing:0.3px;}
 .month-btn.ano.active{background:#1e3a5f;color:var(--blue);border-color:var(--blue2);}
 .card-sub{font-size:13px;color:var(--text2);margin-top:6px;}
@@ -230,7 +237,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
         <div class="page-header">
           <div class="page-title">Visão Geral</div>
           <div class="page-sub" id="dash-month-label">Selecione um mês</div>
-          <div class="month-grid" id="month-grid-2026"></div>
+          <div class="month-selector" id="month-selector-2026"></div>
         </div>
         <div class="cards-grid" id="summary-cards"></div>
         <div class="two-col">
@@ -594,20 +601,28 @@ function showPage(id) {
 
 // ═══ MONTH GRID 2026 ═══
 function buildMonthGrid() {
-  const grid = document.getElementById('month-grid-2026');
-  if (!grid) return;
+  const sel = document.getElementById('month-selector-2026');
+  if (!sel) return;
   const mesesToShow = [];
-  for (let m=1; m<=12; m++) {
-    mesesToShow.push(`2026-${String(m).padStart(2,'0')}`);
-  }
+  for (let m=1; m<=12; m++) mesesToShow.push(`2026-${String(m).padStart(2,'0')}`);
   const mesesComDados = new Set(cache.lancamentos.map(l=>l.mes).filter(Boolean));
-  const anoBtn = `<button class="month-btn ano${mesAtivo==='2026'?' active':''}" onclick="changeMes('2026')" title="Visão anual acumulada">2026</button>`;
-  const mesesBtns = mesesToShow.map(m => {
+  const totalMeses = mesesComDados.size;
+  const anoActive = mesAtivo==='2026';
+  const anoBtn = `<div class="ano-btn-wrap">
+    <button class="ano-btn${anoActive?' active':''}" onclick="changeMes('2026')">
+      <div>
+        <div class="ano-label">2026</div>
+        <div class="ano-sub">Visão anual · ${totalMeses} ${totalMeses===1?'mês':'meses'} com dados</div>
+      </div>
+      <div style="font-size:11px;opacity:0.5">${anoActive?'▲ selecionado':'▶ ver acumulado'}</div>
+    </button>
+  </div>`;
+  const mesesBtns = `<div class="month-grid">${mesesToShow.map(m => {
     const isActive = m === mesAtivo;
     const hasDados = mesesComDados.has(m);
     return `<button class="month-btn${isActive?' active':''}${hasDados&&!isActive?' has-data':''}" onclick="changeMes('${m}')">${mesAbr(m)}</button>`;
-  }).join('');
-  grid.innerHTML = anoBtn + mesesBtns;
+  }).join('')}</div>`;
+  sel.innerHTML = anoBtn + mesesBtns;
 }
 
 function changeMes(m) {
@@ -701,14 +716,17 @@ function renderDashboardAnual() {
   const tbody=document.getElementById('recent-tbody');
   if (tbody) {
     const recent=lncAnual.filter(l=>l.tipo==='gasto').slice(0,10);
-    tbody.innerHTML=recent.length?recent.map(l=>`
-      <tr>
-        <td style="color:var(--text2)">${l.data||'—'}</td>
-        <td>${l.descricao||'—'}</td>
-        <td><span class="cat-badge" style="background:${hexOp(CAT_COLORS[l.categoria]||'#94a3b8',0.15)};color:${CAT_COLORS[l.categoria]||'#94a3b8'}">${CAT_EMOJIS[l.categoria]||''}${l.categoria||'—'}</span></td>
+    tbody.innerHTML=recent.length?recent.map(l=>{
+      const descClean=(l.descricao||'—').replace(/\s*\(\d+\/\d+\)/,'');
+      const parcelaBadge=l.descricao&&/\(\d+\/\d+\)/.test(l.descricao)?`<span class="parcela-badge" style="margin-right:4px">${l.descricao.match(/\(\d+\/\d+\)/)?.[0]}</span>`:'';
+      return `<tr>
+        <td style="color:var(--text2);white-space:nowrap">${l.data||'—'}</td>
+        <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${parcelaBadge}${descClean}</td>
+        <td><span class="cat-badge" style="background:${hexOp(CAT_COLORS[l.categoria]||'#94a3b8',0.15)};color:${CAT_COLORS[l.categoria]||'#94a3b8'};white-space:nowrap">${CAT_EMOJIS[l.categoria]||''}${l.categoria||'—'}</span></td>
         <td><span class="cat-badge" style="background:#7f1d1d;color:#f87171">gasto</span></td>
-        <td style="text-align:right;font-weight:500;color:var(--red)">${fmt(l.valor)}</td>
-      </tr>`).join('')
+        <td style="text-align:right;font-weight:500;color:var(--red);white-space:nowrap">${fmt(l.valor)}</td>
+      </tr>`;
+    }).join('')
       : '<tr><td colspan="5" class="empty-state">Nenhum lançamento em 2026 ainda.</td></tr>';
   }
 }
@@ -814,14 +832,20 @@ function renderDashboard() {
   const tbody=document.getElementById('recent-tbody');
   if (tbody) {
     const recent=lnc.slice(0,10);
-    tbody.innerHTML=recent.length?recent.map(l=>`
-      <tr>
-        <td style="color:var(--text2)">${l.data||'—'}</td>
-        <td>${l.descricao||'—'}</td>
-        <td><span class="cat-badge" style="background:${hexOp(CAT_COLORS[l.categoria]||'#94a3b8',0.15)};color:${CAT_COLORS[l.categoria]||'#94a3b8'}">${CAT_EMOJIS[l.categoria]||''}${l.categoria||'—'}</span></td>
-        <td><span class="cat-badge" style="background:${l.tipo==='gasto'?'#7f1d1d':l.tipo==='investimento'?'#052e16':'#1e3a5f'};color:${l.tipo==='gasto'?'#f87171':l.tipo==='investimento'?'#4ade80':'#60a5fa'}">${l.tipo}</span></td>
-        <td style="text-align:right;font-weight:500;color:${l.tipo==='gasto'?'var(--red)':l.tipo==='investimento'?'var(--green)':'var(--blue)'}">${fmt(l.valor)}</td>
-      </tr>`).join('')
+    tbody.innerHTML=recent.length?recent.map(l=>{
+      const catLabel = l.tipo==='investimento' ? '📈 Investimento' : (l.categoria||'—');
+      const catColor = l.tipo==='investimento' ? '#4ade80' : (CAT_COLORS[l.categoria]||'#94a3b8');
+      const catBg = l.tipo==='investimento' ? '#052e16' : hexOp(CAT_COLORS[l.categoria]||'#94a3b8',0.15);
+      const descClean=(l.descricao||'—').replace(/\s*\(\d+\/\d+\)/,'');
+      const parcelaBadge=l.descricao&&/\(\d+\/\d+\)/.test(l.descricao)?`<span class="parcela-badge" style="margin-right:4px">${l.descricao.match(/\(\d+\/\d+\)/)?.[0]}</span>`:'';
+      return `<tr>
+        <td style="color:var(--text2);white-space:nowrap">${l.data||'—'}</td>
+        <td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${parcelaBadge}${descClean}</td>
+        <td><span class="cat-badge" style="background:${catBg};color:${catColor};white-space:nowrap">${catLabel}</span></td>
+        <td><span class="cat-badge" style="background:${l.tipo==='gasto'?'#7f1d1d':l.tipo==='investimento'?'#052e16':'#1e3a5f'};color:${l.tipo==='gasto'?'#f87171':l.tipo==='investimento'?'#4ade80':'#60a5fa'};white-space:nowrap">${l.tipo==='investimento'?'invest.':l.tipo==='receita'?'receita':l.tipo}</span></td>
+        <td style="text-align:right;font-weight:500;white-space:nowrap;color:${l.tipo==='gasto'?'var(--red)':l.tipo==='investimento'?'var(--green)':'var(--blue)'}">${fmt(l.valor)}</td>
+      </tr>`;
+    }).join('')
       : '<tr><td colspan="5" class="empty-state">Nenhum lançamento neste mês. Use o chat para registrar!</td></tr>';
   }
 }
@@ -884,13 +908,13 @@ function renderGastosTable() {
     const descClean=l.descricao?.replace(/\s*\(\d+\/\d+\)/,'').trim()||'—';
     return `<tr>
       <td style="color:var(--text2)">${l.data||'—'}</td>
-      <td>${parcelaBadge}${descClean}</td>
+      <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${parcelaBadge}${descClean}</td>
       <td>
         <select class="cat-select-inline" onchange="updateCategoria('${l.id}',this.value)" title="Clique para trocar a categoria">
           ${Object.keys(CAT_COLORS).filter(c=>c!=='Pix Recebido').map(c=>`<option value="${c}" ${c===l.categoria?'selected':''}>${CAT_EMOJIS[c]||''}${c}</option>`).join('')}
         </select>
       </td>
-      <td style="text-align:right;color:var(--red);font-weight:500">${fmt(l.valor)}</td>
+      <td style="text-align:right;color:var(--red);font-weight:500;white-space:nowrap">${fmt(l.valor)}</td>
       <td style="text-align:right;width:36px"><button onclick="deleteLancamento('${l.id}')" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;padding:2px 6px" title="Remover">✕</button></td>
     </tr>`;
   }).join('')
